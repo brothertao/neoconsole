@@ -1,11 +1,10 @@
-vm = require 'vm'
-remote = require 'remote'
-BrowserWindow = remote.require 'browser-window'
+path = require('path')
 
 module.exports =
   activate: ->
     @settings = 
       mode: 'normal-mode'
+      lang: 'js'
 
     atom.commands.add 'atom-workspace',
       'jscode:run': =>
@@ -15,6 +14,10 @@ module.exports =
 
     editor = atom.workspace.getActiveTextEditor()
     return unless editor?
+    pathInfo = path.parse editor.getURI()
+    if pathInfo?.ext?.length > 2
+      @settings.lang = pathInfo.ext.split('.').pop()
+    
 
     scripts = editor.getSelectedText()
     if scripts.length
@@ -22,51 +25,9 @@ module.exports =
     else
       scripts = editor.lineTextForBufferRow editor.getCursorBufferPosition().row
     
-    if scripts=='atom-mode'
-      @settings.mode = scripts
-      return
-    if scripts=='normal-mode'
-      @settings.mode = scripts
-      return
-    
     @runScripts(scripts);
 
   runScripts: (scripts) ->
-
-    if @settings.mode=='atom-mode'
-      @runScriptsInAtomBrowser(scripts)
-    else
-      @runScriptsInNormalBrowser(scripts)
-
-  runScriptsInAtomBrowser: (scripts) ->
-    atom.openDevTools()
-    try
-      console.log vm.runInThisContext scripts
-    catch e
-      console.log scripts
-      console.log e
-
-  runScriptsInNormalBrowser: (scripts) ->
-    if not @win
-      win = new BrowserWindow(width: 800, height: 600, show: false);
-      win.on 'closed', =>
-        win = null
-        @win = null
-
-      win.loadUrl 'file://'+__dirname+'/../statics/console/index.html'
-      win.show()
-
-      @win = win
-
-    @win.setAlwaysOnTop true
-    @win.setAlwaysOnTop false
-    global.dash = @win
-    try
-      @win.openDevTools()
-      @win.webContents.executeJavaScript scripts
-    catch e
-      @win.webContents.executeJavaScript e
-
-    
-    
+    env = require './'+@settings.lang+'Env.coffee'
+    env.run(scripts, @settings)
 
