@@ -25,15 +25,13 @@ module.exports =
 
   runScriptsInNormalBrowser: (scripts) ->
     if not @win
-      win = new BrowserWindow(width: 800, height: 600, show: false);
+      @win = win = new BrowserWindow(width: 800, height: 600, show: false);
       win.on 'closed', =>
         win = null
         @win = null
 
       win.loadUrl 'file://'+__dirname+'/../statics/console/index.html'
       win.show()
-
-      @win = win
 
     @win.setAlwaysOnTop true
     @win.setAlwaysOnTop false
