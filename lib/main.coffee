@@ -32,13 +32,4 @@ module.exports =
     @env = require './'+@settings.lang+'Env.coffee'
     @env.run(scripts, @settings)
 
-  exit: ->
-    pane = atom.workspace.getActivePane()
-    pane.destroyItem(this);
-
-  destroy: ->
-    return unless @env?.terms?
-    for name, term of @env.terms
-      term.terminate()
-
 

@@ -37,9 +37,12 @@ module.exports =
       global.cb = @currentWindow
       global.terms = @terms
       @currentWindow.on 'close', =>
-        debugger #tricky: if no this, blow code will not be executed
-        for name, term of @terms
-          term.terminate()
+        ###
+        tricky: if no this, blow code will not be executed
+        ###
+        setTimeout (()=>
+          for name, term of @terms
+            term.terminate()), 10
 
   createBrowserWindow: ->
     if not @win
