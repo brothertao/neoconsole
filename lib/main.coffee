@@ -17,6 +17,7 @@ module.exports =
     pathInfo = path.parse editor.getURI()
     if pathInfo?.ext?.length > 2
       @settings.lang = pathInfo.ext.split('.').pop()
+      @settings.name = pathInfo.base
     
 
     scripts = editor.getSelectedText()

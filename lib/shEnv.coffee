@@ -2,15 +2,33 @@ pty = require 'pty.js'
 remote = require 'remote'
 BrowserWindow = remote.require 'browser-window'
 module.exports = 
-  run: (scripts, settings) ->
-    @settings = settings
+  terms: {}
 
+  run: (scripts, @settings={}) ->
+    scripts = @preRun scripts
+
+    if 'normal-mode'==@settings.mode
+      atom.openDevTools()
+    else
+      @createBrowserWindow()
+
+    @term = @getTerm()
+    global.term = @term
+
+    try
+      @term.write scripts+'\r'
+    catch e
+      console.log e
+
+  createBrowserWindow: ->
     if not @win
       @win = win = new BrowserWindow(width: 800, height: 600, show: false);
+
       win.on 'closed', =>
-        win = null
         @win = null
-        @term = null
+        for name, term of @terms
+          term?.end()
+        @terms = {}
 
       win.loadUrl 'file://'+__dirname+'/../statics/console/index.html'
       win.webContents.on "did-finish-load", ->
@@ -27,20 +45,41 @@ module.exports =
     @win.setAlwaysOnTop false
     global.dash = @win
 
-    if not @term
-        @term = pty.spawn 'bash', [],
-          name: 'neoconsole'
-          cols: 80
-          rows: 30
-          cwd: process.env.HOME
 
-    @term.on 'data', (data) =>
-      @win.webContents.send 'data', data
+  preRun: (scripts) ->
+    name = @settings.name
+    if ':exit' == scripts
+      @terms[name]?.end()
+      delete @terms[name]
+      scripts = ''
 
-    try
-      @term.write scripts+'\r'
-    catch e
-      console.log e
+    scripts
+
+  getTerm:  ->
+    name = @settings.name
+    if not @terms[name]
+        @terms[name] = @createTerm()
+
+    @terms[name]
+    
+  createTerm: ->
+    term = pty.fork 'bash', [],
+      name: @settings.name
+      cols: 80
+      rows: 30
+      cwd: process.env.HOME
+      env: process.env
+
+    term.on 'data', (data) =>
+      if 'normal-mode'==@settings.mode
+        console.log data
+      else
+        @win.webContents.send 'data', data
+
+    term
+
+
+    
       
 
     
