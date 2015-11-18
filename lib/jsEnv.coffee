@@ -4,16 +4,17 @@ BrowserWindow = remote.require 'browser-window'
 module.exports = 
   run: (scripts, settings) ->
     @settings = settings
-    if scripts=='atom-mode'
+    if scripts=='window-mode'
       @settings.mode = scripts
       return
     if scripts=='normal-mode'
       @settings.mode = scripts
       return
-    if @settings.mode=='atom-mode'
-      @runScriptsInAtomBrowser(scripts)
+
+    if @settings.mode=='window-mode'
+      @runScriptsInNewBrowser(scripts)
     else
-      @runScriptsInNormalBrowser(scripts)
+      @runScriptsInAtomBrowser(scripts)
 
   runScriptsInAtomBrowser: (scripts) ->
     atom.openDevTools()
@@ -23,7 +24,7 @@ module.exports =
       console.log scripts
       console.log e
 
-  runScriptsInNormalBrowser: (scripts) ->
+  runScriptsInNewBrowser: (scripts) ->
     if not @win
       @win = win = new BrowserWindow(width: 800, height: 600, show: false);
       win.on 'closed', =>
