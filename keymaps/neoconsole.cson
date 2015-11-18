@@ -1,2 +1,4 @@
 'atom-workspace':
   'cmd-;': 'jscode:run'
+'atom-text-editor.vim-mode:not(.insert-mode)':
+  'enter': 'jscode:run'
