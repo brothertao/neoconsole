@@ -27,6 +27,8 @@ module.exports =
   runScriptsInNewBrowser: (scripts) ->
     if not @win
       @win = win = new BrowserWindow(width: 800, height: 600, show: false);
+      win.webContents.home = win
+      console.log 'console window id: '+win.id
       win.on 'closed', =>
         win = null
         @win = null

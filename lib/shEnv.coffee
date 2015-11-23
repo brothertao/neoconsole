@@ -2,18 +2,17 @@ pty = require 'pty.js'
 {Task} = require 'atom'
 remote = require 'remote'
 BrowserWindow = remote.require 'browser-window'
+#development hack
+global.shHook = require './hooks/sh.coffee'
+
 module.exports = 
   terms: {}
 
   run: (scripts, @settings={}) ->
+    @hook = shHook     
     scripts = @preRun scripts
 
-    if 'normal-mode'==@settings.mode
-      @openDevTools()
-
-    else
-      @createBrowserWindow()
-
+    @openDevTools()
     @term = @getTerm()
     global.term = @term
 
@@ -23,7 +22,6 @@ module.exports =
       else
         scripts = scripts+'\r'
       
-      scripts = new Buffer(scripts)
       @term.send event: 'input', text: scripts
     catch e
       console.log e
@@ -37,12 +35,12 @@ module.exports =
       global.cb = @currentWindow
       global.terms = @terms
       @currentWindow.on 'close', =>
-        ###
-        tricky: if no this, blow code will not be executed
-        ###
-        setTimeout (()=>
+        #tricky: if no this, blow code will not be executed
+        setTimeout ()=>
           for name, term of @terms
-            term.terminate()), 10
+            term.terminate()
+            delete @terms[name]
+        , 10
 
   createBrowserWindow: ->
     if not @win
@@ -72,11 +70,18 @@ module.exports =
 
   preRun: (scripts) ->
     name = @settings.name
-    if ':exit' == scripts
-      @terms[name]?.exit()
-      delete @terms[name]
-      scripts = ''
+    if ':reload' == scripts
+      try
+        @terms[name]?.terminate()
+      catch e
+        console.log(e)
+      finally
+        delete @terms[name]
+        scripts = ''
 
+    if @hook?.beforeSend
+        scripts = @hook.beforeSend scripts
+    
     scripts
 
   getTerm:  ->
@@ -87,16 +92,17 @@ module.exports =
     @terms[name]
     
   createTerm: ->
-
     processPath = require.resolve './pty'
     ptyProcess = Task.once processPath, @settings.name
 
     ptyProcess.on 'neoconsole:tty:data', (data) =>
-      if 'normal-mode'==@settings.mode
-        console.log data
-      else
-        @win.webContents.send 'data', data
+      data = @hook.beforeShowResponse data
+      console.log data
 
+    ptyProcess.sendScripts = (scripts) -> 
+      ptyProcess.send event:'input', text:scripts+'\r'
+
+    ptyProcess.sendScripts @hook.getInitScripts @settings.name
     ptyProcess
 
 
